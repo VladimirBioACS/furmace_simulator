@@ -97,6 +97,14 @@ class MQTT_interface:
 
     # Public methods
     def init_client(self, topic: list, callback_func) -> None:
+        """
+        Init MQTT client
+
+        Args:
+            topic (list): MQTT topic
+            callback_func (_type_): MQTT callback function
+        """
+
         self.client = mqtt.Client(self.alias)
         self.client.on_connect = self.__on_connect
         self.client.on_disconnect = self.__on_disconnect
@@ -119,6 +127,14 @@ class MQTT_interface:
 
 
     def send_message(self, msg: str, topic: str) -> None:
+        """
+        Send MQTT message
+
+        Args:
+            msg (str): message
+            topic (str): MQTT topic
+        """
+
         self.client.publish(topic=topic,
                             payload=msg,
                             qos=1,
@@ -126,6 +142,16 @@ class MQTT_interface:
 
 
     def unsub_from_topic(self, topic: list) -> int:
+        """
+        Unsubscribe from the MQTT topic
+
+        Args:
+            topic (list): MQTT topic
+
+        Returns:
+            int: status
+        """
+
         logger.info(f"Unsub from topics: {topic}")
         ret = self.client.unsubscribe(topic=topic)
         if ret[0] == mqtt.MQTT_ERR_SUCCESS:
@@ -135,5 +161,9 @@ class MQTT_interface:
 
 
     def close(self) -> None:
+        """
+        Close MQTT connection
+        """
+
         self.client.loop_stop()
         self.client.disconnect()

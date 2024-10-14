@@ -57,6 +57,13 @@ config_file.close()
 
 # Enums
 class SensorDirections(Enum):
+    """
+    Sensor direction enum
+
+    Args:
+        Enum (enum): sensor directions enums
+    """
+
     sensor_direction_down = 0
     sensor_direction_up = 1
     sensor_direction_reset = 2
@@ -64,6 +71,13 @@ class SensorDirections(Enum):
 
 
 class ProcessStatus(Enum):
+    """
+    Process status ENUM
+
+    Args:
+        Enum (enum): status codes
+    """
+
     calibration_process_begin = 0x0B
     calibration_process_finished = 0x0C
     calibration_process_unexpected_error = 0xF1
@@ -167,6 +181,17 @@ figlet = Figlet(font='slant')
 
 
 def temp_sensor_control(sensor: modules.sensors.Sensor, dir: int, val: int) -> int:
+    """
+    Controls temperature sensor emulator
+
+    Args:
+        sensor (modules.sensors.Sensor): sensor class
+        dir (int): sensor value direction
+        val (int): sensor value
+
+    Returns:
+        int: value
+    """
 
     if dir == SensorDirections.sensor_direction_up.value:
         sensor.set_sensor_value(val)
@@ -179,6 +204,10 @@ def temp_sensor_control(sensor: modules.sensors.Sensor, dir: int, val: int) -> i
 
 
 def temp_sensor_reset_all() -> None:
+    """
+    Reset sensor emulator
+    """
+
     pot_temp_sensor.reset_sensor_value()
     alloy_temp_sensor.reset_sensor_value()
     coolant_temp_sensor.reset_sensor_value()
@@ -191,6 +220,17 @@ def temp_sensor_reset_all() -> None:
 
 
 def calibrate_temp_sensors(value: int, dir: SensorDirections) -> list:
+    """
+    Calibration of the temperature sensor emulator
+
+    Args:
+        value (int): sensor value
+        dir (SensorDirections): sensor direction
+
+    Returns:
+        list: list of sensor data
+    """
+
     sensor_data_list = {}
 
     pot_temp_value = temp_sensor_control(sensor=pot_temp_sensor,
@@ -215,6 +255,10 @@ def calibrate_temp_sensors(value: int, dir: SensorDirections) -> list:
 
 
 def temp_sensors_mock() -> None:
+    """
+    Create sensor mock
+    """
+
     pot_thermal_couple = random.randint(1700, 1715)
     alloy_thermal_couple = random.randint(1611, 1630)
     coolant_thermal_couple = random.randint(740, 751)
@@ -246,6 +290,13 @@ def temp_sensors_mock() -> None:
 
 
 def start_calibration_process() -> bool:
+    """
+    Emulate furnace callibration process
+
+    Returns:
+        bool: calibration status
+    """
+
     for val in range(400):
         sensor_data_list = {}
         value = random.randint(1, 10)
@@ -319,6 +370,15 @@ def start_calibration_process() -> bool:
 
 
 def mqtt_callback_func(client, userdata, message) -> None:
+    """
+    MQTT callback function
+
+    Args:
+        client (_type_): MQTT client
+        userdata (_type_): MQTT userdata
+        message (_type_): MQTT message
+    """
+
     global calibration_process_start_flag
     global manufacturing_process_start_flag
 
@@ -341,6 +401,10 @@ def mqtt_callback_func(client, userdata, message) -> None:
 
 
 def main() -> None:
+    """
+    Main function
+    """
+
     # logger.disable("mqtt_interface")
     global calibration_process_start_flag
     global manufacturing_process_start_flag
