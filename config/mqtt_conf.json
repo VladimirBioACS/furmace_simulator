@@ -1,0 +1,7 @@
+{
+    "broker": "192.168.0.104",
+    "port": 1883,
+    "username": "furnace",
+    "password": "root1234",
+    "alias": "simulator"
+}
