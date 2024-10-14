@@ -2,6 +2,9 @@ import sys
 import os
 
 class Actuator:
+    """
+    Actuator class
+    """
 
     def __init__(self,
                  actuator_label: str,
@@ -18,6 +21,18 @@ class Actuator:
 
     # Public methods
     def set_actuator_position(self, speed: int, position: int, dir: int) -> int:
+        """
+        Sets actuator possition
+
+        Args:
+            speed (int): actuator speed
+            position (int): actuator position
+            dir (int): actuator direction
+
+        Returns:
+            int: _description_
+        """
+
         if self.actuator_position <= self.actuator_max_position and \
         self.actuator_position >= self.actuator_min_position:
 
@@ -31,9 +46,22 @@ class Actuator:
 
 
     def reset_actuator_postion(self, position: int) -> None:
+        """
+        Resets actuator position
+
+        Args:
+            position (int): actuator position
+        """
+
         self.actuator_position = self.actuator_min_position
 
 
     def get_actuator_label(self) -> str:
-        return self.actuator_label
+        """
+        Get actuator name (lable)
 
+        Returns:
+            str: actuator lable
+        """
+
+        return self.actuator_label

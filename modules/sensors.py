@@ -38,6 +38,7 @@ class Sensor:
         Returns:
             int: sensor value
         """
+
         return self.__filter_sensor_value()
 
 
@@ -47,6 +48,7 @@ class Sensor:
         Args:
             val (int): sensor up value
         """
+
         if  self.sensor_readings >= self.sensor_bot_boundry and  \
             self.sensor_readings <= self.sensor_top_boundry:
 
@@ -56,4 +58,5 @@ class Sensor:
     def reset_sensor_value(self) -> None:
         """Reset sensor value to the low boundry (default)
         """
+
         self.sensor_readings = self.sensor_bot_boundry
