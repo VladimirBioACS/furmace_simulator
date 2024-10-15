@@ -182,13 +182,6 @@ def main():
         mqtt_client.close()
         sys.exit(0)
 
-def dummy_function() -> None:
-    """
-    Dummy function
-    """
-    
-    print("Hello")
-
 
 if __name__ == "__main__":
     main()
