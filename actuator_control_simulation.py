@@ -55,7 +55,7 @@ mqtt_client = mqtt_interface.MQTT_interface(
 actuator = act.Actuator(
     actuator_label="furnace_actuator",
     actuator_bot_speed=0,
-    actuator_top_speed=100
+    actuator_top_speed=400
 )
 
 
