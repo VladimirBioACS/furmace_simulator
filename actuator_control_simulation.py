@@ -77,5 +77,19 @@ def dummy_dunction_one() -> None:
     
     print("One from function dummy_one")
 
+def dummy_dunction_two() -> None:
+    """
+    Dummy function two
+    """
+
+    print("two from function dummy_two")
+    
+def dummy_dunction_three() -> None:
+    """
+    Dummy function three
+    """
+
+    print("three")
+
 if __name__ == "__main__":
     main()
