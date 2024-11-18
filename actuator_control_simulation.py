@@ -326,5 +326,21 @@ def main() -> None:
     print(f"Temp end: {temp_end}")
 
 
+def dummy_function() -> None:
+    """
+    Dummy function
+    """
+    
+    print("Dummy function")
+    
+    
+def dummy_function_two() -> None:
+    """
+    Dummy function
+    """
+    
+    print("test 2")
+
+
 if __name__ == "__main__":
     main()
