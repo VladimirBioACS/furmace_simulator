@@ -70,6 +70,12 @@ def main() -> None:
 
     pass
 
+def dummy_dunction_one() -> None:
+    """
+    Dummy function one
+    """
+    
+    print("One from function dummy_one")
 
 if __name__ == "__main__":
     main()
