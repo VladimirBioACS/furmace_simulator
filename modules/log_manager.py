@@ -1,8 +1,16 @@
 import sys
-from loguru import logger
 
-class log_manager():
+try:
+    from loguru import logger
+except ImportError:
+    print("Module loguru not found. Please use pip install -r requirements.txt")
+    sys.exit(1)
 
+
+class LogManager():
+    """
+    log_manager class
+    """
 
     def __init__(self,
                  log_file_path: str,
