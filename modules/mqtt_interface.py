@@ -79,8 +79,8 @@ class MQTT_interface:
         logger.info(f"Disconnected from {self.broker} with code: {rc}")
 
 
-    def __on_subscribe(self, client, userdata, mid: int, granted_qos: int) -> None:
-        logger.info(f"Client successfully subscribed to the topic")
+    def __on_subscribe(self, client, userdata, mid, granted_qos: int) -> None:
+        logger.info("Client successfully subscribed to the topic")
         logger.info(f"Granded QoS: {granted_qos}")
         logger.info(f"Userdata: {userdata}")
 
@@ -91,7 +91,7 @@ class MQTT_interface:
         }
         self.__single_pub(message=message_on_unsub)
 
-        logger.info(f"Client successfully unsubscribed from the topic")
+        logger.info("Client successfully unsubscribed from the topic")
         logger.info(f"Userdata: {userdata}")
 
 
