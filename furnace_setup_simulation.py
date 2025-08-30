@@ -11,21 +11,25 @@ import json
 from time import sleep
 import random
 import sys
-import json
 from enum import Enum
 
 # Project local imports
-import modules.mqtt_interface as mqtt_interface
-from modules.mqtt_interface import MqttStatusRetCodes as retCodes
-import modules.sensors
-import modules.actuator
-from modules.log_manager import log_manager
+from modules.mqtt_interface import MqttInterface
+from modules.sensors import SensorDirections, Sensor
+from modules.log_manager import LogManager
 from modules.log_manager import logger
 
 # 3d party imports
-from pyfiglet import Figlet
+try:
+    from pyfiglet import Figlet
+except ImportError:
+    print("Module pyfiglet not found. Please use pip install -r requirements.txt")
+    sys.exit(1)
 
-# Variables
+
+CONFIG_PATH = 'config/mqtt_conf.json'
+
+# Log settings
 LOG_FILE_PATH = 'logs/log.log'
 LOG_FILTER_NAME = 'simulator_log'
 LOG_LEVEL = 'INFO'
@@ -33,12 +37,12 @@ LOG_ROTATION_SIZE = '10 MB'
 LOG_COMPRESSION_METHOD = 'tar.gz'
 LOG_RETENTION = 3
 
-sensor_readings_delay = 0.2
-loop_range = 100
+# MQTT service topic
+MQTT_SERVICE_TOPIC = 'simulator/status'
+
+# Global flags
 calibration_process_start_flag = 0
 manufacturing_process_start_flag = 0
-
-mqtt_service_topic = 'simulator/status'
 
 sensor_mqtt_topic_send_list = {
     'thermal_sensor':'sensors/thremal/send',
@@ -50,26 +54,19 @@ sensor_mqtt_topic_recv_list = {
     'actuator':'actuator/receive'
 }
 
-# Configurations
-config_file = open('config/mqtt_conf.json', 'r')
-config = json.loads(config_file.read())
-config_file.close()
+# Load config file
+try:
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
+        config = json.loads(config_file.read())
+        config_file.close()
+except FileNotFoundError:
+    print(f"Config file {CONFIG_PATH} not found!")
+    sys.exit(1)
+except json.JSONDecodeError:
+    print(f"Config file {CONFIG_PATH} is not valid JSON!")
+    sys.exit(1)
 
 # Enums
-class SensorDirections(Enum):
-    """
-    Sensor direction enum
-
-    Args:
-        Enum (enum): sensor directions enums
-    """
-
-    sensor_direction_down = 0
-    sensor_direction_up = 1
-    sensor_direction_reset = 2
-    sensor_direction_unknown = 3
-
-
 class ProcessStatus(Enum):
     """
     Process status ENUM
@@ -78,16 +75,16 @@ class ProcessStatus(Enum):
         Enum (enum): status codes
     """
 
-    calibration_process_begin = 0x0B
-    calibration_process_finished = 0x0C
-    calibration_process_unexpected_error = 0xF1
-    manufacturing_process_begin = 0xB0
-    manufacturing_process_finished = 0xC0
-    manufacturing_process_unexpected_error = 0xF2
+    CALIBRATION_PROCESS_BEGIN       = 0x0B
+    CALIBRATION_PROCESS_FINISHED    = 0x0C
+    CALIBRATION_PROCESS_ERROR       = 0xF1
+    MANUFACTURING_PROCESS_BEGIN     = 0xB0
+    MANUFACTURING_PROCESS_FINISHED  = 0xC0
+    MANUFACTURING_PROCESS_ERROR     = 0xF2
 
 # Classes
 # logger object configuration
-log_manager_obj = log_manager(
+log_manager_obj = LogManager(
     log_file_path=LOG_FILE_PATH,
     log_filter_name=LOG_FILTER_NAME,
     log_level=LOG_LEVEL,
@@ -96,79 +93,79 @@ log_manager_obj = log_manager(
     log_retention=LOG_RETENTION
 )
 
-mqtt_client = mqtt_interface.MQTT_interface(
+mqtt_client = MqttInterface(
     broker=config['broker'],
     port=config['port'],
     username=config['username'],
     password=config['password'],
     alias=config['alias'],
-    service_topic=mqtt_service_topic
+    service_topic=MQTT_SERVICE_TOPIC
 )
 
-pot_temp_sensor = modules.sensors.Sensor(
+pot_temp_sensor = Sensor(
     sensor_label="pot_thermal_couple",
     sensor_number=1,
     sensor_bot_boundry=25,
     sensor_top_boundry=1700
 )
 
-alloy_temp_sensor = modules.sensors.Sensor(
+alloy_temp_sensor = Sensor(
     sensor_label="alloy_thermal_couple",
     sensor_number=1,
     sensor_bot_boundry=25,
     sensor_top_boundry=1650
 )
 
-coolant_temp_sensor = modules.sensors.Sensor(
+coolant_temp_sensor = Sensor(
     sensor_label="coolant_thermal_couple",
     sensor_number=1,
     sensor_bot_boundry=25,
     sensor_top_boundry=750
 )
 
-cold_weld_thermalcouple_sensor = modules.sensors.Sensor(
+cold_weld_thermalcouple_sensor = Sensor(
     sensor_label="cold_weld_thermalcouple_sensor",
     sensor_number=1,
     sensor_bot_boundry=15,
     sensor_top_boundry=25
 )
 
-room_temp_sensor = modules.sensors.Sensor(
+room_temp_sensor = Sensor(
     sensor_label="room_temp",
     sensor_number=1,
     sensor_bot_boundry=15,
     sensor_top_boundry=25
 )
 
-ppf_one_sensor = modules.sensors.Sensor(
+ppf_one_sensor = Sensor(
     sensor_label="ppf_one_sensor",
     sensor_number=1,
     sensor_bot_boundry=20,
     sensor_top_boundry=1623
 )
 
-ppf_two_sensor = modules.sensors.Sensor(
+ppf_two_sensor = Sensor(
     sensor_label="ppf_two_sensor",
     sensor_number=1,
     sensor_bot_boundry=20,
     sensor_top_boundry=1624
 )
 
-ppf_three_sensor = modules.sensors.Sensor(
+ppf_three_sensor = Sensor(
     sensor_label="ppf_three_sensor",
     sensor_number=1,
     sensor_bot_boundry=20,
     sensor_top_boundry=1625
 )
 
-ppf_four_sensor = modules.sensors.Sensor(
+ppf_four_sensor = Sensor(
     sensor_label="ppf_four_sensor",
     sensor_number=1,
     sensor_bot_boundry=20,
     sensor_top_boundry=1626
 )
 
-ppf_five_sensor = modules.sensors.Sensor(
+ppf_five_sensor = Sensor(
     sensor_label="ppf_five_sensor",
     sensor_number=1,
     sensor_bot_boundry=20,
@@ -180,7 +177,7 @@ log_manager_obj.create_logger()
 figlet = Figlet(font='slant')
 
 
-def temp_sensor_control(sensor: modules.sensors.Sensor, dir: int, val: int) -> int:
+def temp_sensor_control(sensor: Sensor, direction: int, val: int) -> int:
     """
     Controls temperature sensor emulator
 
@@ -193,11 +190,11 @@ def temp_sensor_control(sensor: modules.sensors.Sensor, dir: int, val: int) -> i
         int: value
     """
 
-    if dir == SensorDirections.sensor_direction_up.value:
+    if direction == SensorDirections.SENSOR_VALUE_INCREASE.value:
         sensor.set_sensor_value(val)
-    elif dir == SensorDirections.sensor_direction_down.value:
+    elif direction == SensorDirections.SENSOR_VALUE_DECREASE.value:
         sensor.set_sensor_value(val)
-    elif dir == SensorDirections.sensor_direction_reset.value:
+    elif direction == SensorDirections.SENSOR_VALUE_RESET.value:
         sensor.reset_sensor_value()
 
     return sensor.read_sensor_value()
@@ -219,7 +216,7 @@ def temp_sensor_reset_all() -> None:
     ppf_four_sensor.reset_sensor_value()
 
 
-def calibrate_temp_sensors(value: int, dir: SensorDirections) -> list:
+def calibrate_temp_sensors(value: int, direction: SensorDirections) -> list:
     """
     Calibration of the temperature sensor emulator
 
@@ -234,16 +231,16 @@ def calibrate_temp_sensors(value: int, dir: SensorDirections) -> list:
     sensor_data_list = {}
 
     pot_temp_value = temp_sensor_control(sensor=pot_temp_sensor,
-                                         dir=dir,
-                                         val=value)
+                                        direction=direction,
+                                        val=value)
 
     alloy_temp_value = temp_sensor_control(sensor=alloy_temp_sensor,
-                                           dir=dir,
+                                           direction=direction,
                                            val=value)
 
     coolant_temp_value = temp_sensor_control(sensor=coolant_temp_sensor,
-                                             dir=dir,
-                                             val=value)
+                                            direction=direction,
+                                            val=value)
 
     sensor_data_list = {
         pot_temp_sensor.sensor_label:pot_temp_value,
@@ -259,28 +256,28 @@ def temp_sensors_mock() -> None:
     Create sensor mock
     """
 
-    pot_thermal_couple = random.randint(1700, 1715)
-    alloy_thermal_couple = random.randint(1611, 1630)
-    coolant_thermal_couple = random.randint(740, 751)
-    cold_weld_thermalcouple_sensor = random.randint(24, 26)
-    room_temp = random.randint(24, 26)
-    ppf_one_sensor = random.randint(1620, 1640)
-    ppf_two_sensor = random.randint(1620, 1640)
-    ppf_three_sensor = random.randint(1620, 1640)
-    ppf_four_sensor = random.randint(1620, 1640)
-    ppf_five_sensor = random.randint(1620, 1640)
+    pot_thermal_couple_val = random.randint(1700, 1715)
+    alloy_thermal_couple_val = random.randint(1611, 1630)
+    coolant_thermal_couple_val = random.randint(740, 751)
+    cold_weld_therm_sensor_val = random.randint(24, 26)
+    room_temp_val = random.randint(24, 26)
+    ppf_one_sensor_val = random.randint(1620, 1640)
+    ppf_two_sensor_val = random.randint(1620, 1640)
+    ppf_three_sensor_val = random.randint(1620, 1640)
+    ppf_four_sensor_val = random.randint(1620, 1640)
+    ppf_five_sensor_val = random.randint(1620, 1640)
 
     sensor_data_list = {
-        "pot_thermal_couple":pot_thermal_couple,
-        "alloy_thermal_couple":alloy_thermal_couple,
-        "coolant_thermal_couple":coolant_thermal_couple,
-        "cold_weld_thermalcouple_sensor":cold_weld_thermalcouple_sensor,
-        "room_temp":room_temp,
-        "ppf_one_sensor":ppf_one_sensor,
-        "ppf_two_sensor":ppf_two_sensor,
-        "ppf_three_sensor":ppf_three_sensor,
-        "ppf_four_sensor":ppf_four_sensor,
-        "ppf_five_sensor":ppf_five_sensor
+        "pot_thermal_couple":pot_thermal_couple_val,
+        "alloy_thermal_couple":alloy_thermal_couple_val,
+        "coolant_thermal_couple":coolant_thermal_couple_val,
+        "cold_weld_thermalcouple_sensor":cold_weld_therm_sensor_val,
+        "room_temp":room_temp_val,
+        "ppf_one_sensor":ppf_one_sensor_val,
+        "ppf_two_sensor":ppf_two_sensor_val,
+        "ppf_three_sensor":ppf_three_sensor_val,
+        "ppf_four_sensor":ppf_four_sensor_val,
+        "ppf_five_sensor":ppf_five_sensor_val
     }
 
     data = json.dumps(sensor_data_list)
@@ -297,55 +294,55 @@ def start_calibration_process() -> bool:
         bool: calibration status
     """
 
-    for val in range(400):
+    for _ in range(400):
         sensor_data_list = {}
         value = random.randint(1, 10)
         pot_temp_value = temp_sensor_control(sensor=pot_temp_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE.value,
                                         val=value)
         value = random.randint(1, 10)
         alloy_temp_value = temp_sensor_control(sensor=alloy_temp_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE.value,
                                         val=value)
 
         value = random.randint(1, 10)
         coolant_temp_value = temp_sensor_control(sensor=coolant_temp_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE.value,
                                         val=value)
 
         value = random.randint(1, 10)
         cold_weld_sensor_value = temp_sensor_control(sensor=cold_weld_thermalcouple_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE,
                                         val=value)
 
         value = random.randint(1, 10)
         room_temp_sensor_value = temp_sensor_control(sensor=room_temp_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE,
                                         val=value)
 
         value = random.randint(1, 10)
         ppf_one_value = temp_sensor_control(sensor=ppf_one_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE,
                                         val=value)
 
         value = random.randint(1, 10)
         ppf_two_value = temp_sensor_control(sensor=ppf_two_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE,
                                         val=value)
 
         value = random.randint(1, 10)
         ppf_three_value = temp_sensor_control(sensor=ppf_three_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE.value,
                                         val=value)
 
         value = random.randint(1, 10)
         ppf_four_value = temp_sensor_control(sensor=ppf_four_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE.value,
                                         val=value)
 
         value = random.randint(1, 10)
         ppf_five_value = temp_sensor_control(sensor=ppf_five_sensor,
-                                        dir=SensorDirections.sensor_direction_up.value,
+                                        direction=SensorDirections.SENSOR_VALUE_INCREASE.value,
                                         val=value)
 
         sensor_data_list = {
@@ -369,7 +366,7 @@ def start_calibration_process() -> bool:
     return True
 
 
-def mqtt_callback_func(client, userdata, message) -> None:
+def mqtt_callback_func(_, userdata, message) -> None:
     """
     MQTT callback function
 
@@ -387,15 +384,15 @@ def mqtt_callback_func(client, userdata, message) -> None:
     logger.info(f"Message Recieved from Server: {recv_message}")
     logger.info(f"Userdata: {userdata}")
 
-    if int(recv_message) == ProcessStatus.calibration_process_begin.value:
+    if int(recv_message) == ProcessStatus.CALIBRATION_PROCESS_BEGIN.value:
         logger.info("Calibration Process started")
-        mqtt_client.send_message(topic=mqtt_service_topic,
+        mqtt_client.send_message(topic=MQTT_SERVICE_TOPIC,
                                  msg="Calibration process started")
         calibration_process_start_flag = 1
 
-    if int(recv_message) == ProcessStatus.manufacturing_process_begin.value:
+    if int(recv_message) == ProcessStatus.MANUFACTURING_PROCESS_BEGIN.value:
         logger.info("Manufacturing Process started")
-        mqtt_client.send_message(topic=mqtt_service_topic,
+        mqtt_client.send_message(topic=MQTT_SERVICE_TOPIC,
                                  msg="Manufacturing process started")
         manufacturing_process_start_flag = 1
 
@@ -405,7 +402,6 @@ def main() -> None:
     Main function
     """
 
-    # logger.disable("mqtt_interface")
     global calibration_process_start_flag
     global manufacturing_process_start_flag
 
@@ -424,8 +420,8 @@ def main() -> None:
                 calibration_state = start_calibration_process()
                 calibration_process_start_flag = 0
                 logger.info("Calibration process finished!")
-                mqtt_client.send_message(msg=str(ProcessStatus.calibration_process_finished.value),
-                                         topic=mqtt_service_topic)
+                mqtt_client.send_message(msg=str(ProcessStatus.CALIBRATION_PROCESS_FINISHED.value),
+                                         topic=MQTT_SERVICE_TOPIC)
 
             if calibration_state:
                 temp_sensors_mock()
@@ -442,17 +438,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-
-
-# Temperature gradient calculation formula (for alloy sample):
-# dT/dz = (T2 - T1) / (z2 - z1)
-# T1 - temperature at start point
-# T2 - temperature at end point
-# z1 - distance start point
-# z2 - distance end point
-# For this case we can assume that we can have many distance points between thermal couple (5 for example), so:
-# we should use something like: Gradient = Sum ((T2 - T1) /(z2 - z1), (Tx - Ty) / (zx - zy))
-
-# Same can be used for pot temperature and coolant temperature gradient calculation

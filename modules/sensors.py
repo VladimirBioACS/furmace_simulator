@@ -1,8 +1,24 @@
-# Sensors for the simulation:
-# Voltage sensor;
-# Temperature sensors (thermal couples)
+from enum import Enum
+
+
+class SensorDirections(Enum):
+    """
+    Sensor direction enum
+
+    Args:
+        Enum (enum): sensor directions enums
+    """
+
+    SENSOR_VALUE_INCREASE   = 0
+    SENSOR_VALUE_DECREASE   = 1
+    SENSOR_VALUE_RESET      = 2
+    SENSOR_VALUE_UNKNOWN    = 3
+
 
 class Sensor:
+    """
+    Sensor class
+    """
 
     def __init__(self,
                  sensor_label: str,
@@ -28,12 +44,17 @@ class Sensor:
 
     # Private methods
     def __filter_sensor_value(self) -> int:
+        """
+        Filter sensor value to be within the boundries
+        """
+
         return self.sensor_readings
 
 
     # Public methods
     def read_sensor_value(self) -> int:
-        """Read sensor value
+        """
+        Read sensor value
 
         Returns:
             int: sensor value
@@ -43,10 +64,11 @@ class Sensor:
 
 
     def set_sensor_value(self, val: int) -> None:
-        """Increase sensor value
+        """
+        Set sensor value
 
         Args:
-            val (int): sensor up value
+            val (int): sensor value
         """
 
         if  self.sensor_readings >= self.sensor_bot_boundry and  \
@@ -56,7 +78,8 @@ class Sensor:
 
 
     def reset_sensor_value(self) -> None:
-        """Reset sensor value to the low boundry (default)
+        """
+        Reset sensor value to the low boundry (default)
         """
 
         self.sensor_readings = self.sensor_bot_boundry

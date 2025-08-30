@@ -1,10 +1,20 @@
-import paho.mqtt.client as mqtt
-import paho.mqtt.publish as pub
 from enum import Enum
 from modules.log_manager import logger
+try:
+    import paho.mqtt.client as mqtt
+    import paho.mqtt.publish as pub
+except ImportError:
+    logger.error("Module paho-mqtt not found. Please use pip install -r requirements.txt")
+    raise
 
-# MQTT status codes
+
 class MqttStatusCodes(Enum):
+    """
+    MQTT status codes
+
+    Args:
+        Enum (_type_): mqtt status codes enum
+    """
     MQTT_NORMAL_DISCONNECT = 0x00
     MQTT_CONNECTED = 0x01
     MQTT_SUBSCRIBED = 0x02
@@ -12,14 +22,23 @@ class MqttStatusCodes(Enum):
     MQTT_UNEXPECTED_DISCONNECT = 0xFF
 
 
-# MQTT status ret codes
 class MqttStatusRetCodes(Enum):
+    """
+    MQTT status return codes
+
+    Args:
+        Enum (_type_): mqtt return codes enum
+    """
+
     MQTT_RET_SUCCESS = 0
     MQTT_RET_FAILED = 1
 
 
 # MQTT interface main class
-class MQTT_interface:
+class MqttInterface:
+    """
+    MQTT interface class
+    """
 
     def __init__(self,
                  broker: str,
@@ -40,6 +59,13 @@ class MQTT_interface:
 
     # Private methods
     def __single_pub(self, message: str) -> None:
+        """
+        Single publish MQTT message
+
+        Args:
+            message (str): _description_
+        """
+
         pub.single(topic=self.service_topic,
                    payload=str(message),
                    hostname=self.broker,
@@ -54,6 +80,10 @@ class MQTT_interface:
 
 
     def __on_connect(self, client, userdata, flags, rc: int) -> None:
+        """
+        On connect callback
+        """
+
         if rc == 0:
             message_on_connect = {
                 "status":MqttStatusCodes.MQTT_CONNECTED.value
@@ -65,6 +95,15 @@ class MQTT_interface:
 
 
     def __on_disconnect(self, client, userdata, rc: int) -> None:
+        """
+        On disconnect callback
+
+        Args:
+            client (_type_): mqtt client
+            userdata (_type_): mqtt user data
+            rc (int): mqtt return code
+        """
+
         status = None
         if rc != 0:
             status = MqttStatusCodes.MQTT_UNEXPECTED_DISCONNECT.value
@@ -80,12 +119,31 @@ class MQTT_interface:
 
 
     def __on_subscribe(self, client, userdata, mid, granted_qos: int) -> None:
+        """
+        On subscribe callback
+
+        Args:
+            client (_type_): mqtt client
+            userdata (_type_): mqtt user data
+            mid (_type_): mqtt message id
+            granted_qos (int): mqtt granted qos
+        """
+
         logger.info("Client successfully subscribed to the topic")
         logger.info(f"Granded QoS: {granted_qos}")
         logger.info(f"Userdata: {userdata}")
 
 
     def __on_unsubscribe(self, client, userdata, mid) -> None:
+        """
+        On unsubscribe callback
+
+        Args:
+            client (_type_): mqtt client
+            userdata (_type_): mqtt user data
+            mid (_type_): mqtt message id
+        """
+
         message_on_unsub = {
             "status": MqttStatusCodes.MQTT_UNSUBSCRIBED.value
         }
